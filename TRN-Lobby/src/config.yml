@@ -1,0 +1,31 @@
+# About editing this file:
+# - DO NOT USE TABS. You MUST use spaces or Bukkit will complain. If
+#   you use an editor like Notepad++ (recommended for Windows users), you
+#   must configure it to "replace tabs with spaces." In Notepad++, this can
+#   be changed in Settings > Preferences > Language Menu.
+# - Don't get rid of the indents. They are indented so some entries are
+#   in categories (like "enforce-single-session" is in the "protection"
+#   category.
+# - If you want to check the format of this file before putting it
+#   into the server, paste it into http://yaml-online-parser.appspot.com/
+#   and see if it gives "ERROR:".
+# - Lines starting with # are commentsand so they are ignored.
+#
+
+# prefix: the name of your server. You can use chat colors.
+# Default value: "&1[&6TheRealNuke&1] &e"
+prefix: "&1[&6TheRealNuke&1] &e"
+
+# override-spawn-cmd: If it is True the /spawn command will take the players to
+# the configured spawn world.
+# Default value: false
+override-spawn-cmd: false
+
+# Allows or deny some events in the spawn world.
+allow:
+    creature-spawn: false
+    block-ignite: false
+    piston-works: false
+
+# Handle the inventory between Lobby World and other worlds.
+handle-inventory: true

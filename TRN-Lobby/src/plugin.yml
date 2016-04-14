@@ -1,0 +1,21 @@
+name: TRN-Lobby
+version: "1.0.0 Alpha"
+main: info.therealnuke.lobby.Main
+description: The Real Nuke Lobby
+author: TheRealNuke <therealnuke@gmail.com>
+website: http://therealnuke.info/
+depend: [WorldEdit]
+    
+commands:
+    trnlobby:
+        description: Manage the TRN-Lobby plugin options.
+        usage: "§eUsage: /trnlobby <reload|addspawnpoint>"
+        permission: trnlobby.admin
+        permission-message: §4You don't have <permission>
+
+permissions:
+    trnlobby.admin:
+        description: Gives access to player admin commmands.
+    trnlobby.edit:
+        description: Gives access to player to modify the Lobby World.
+        
