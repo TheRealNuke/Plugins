@@ -4,7 +4,6 @@ main: info.therealnuke.lobby.Main
 description: The Real Nuke Lobby
 author: TheRealNuke <therealnuke@gmail.com>
 website: http://therealnuke.info/
-depend: [WorldEdit]
     
 commands:
     trnlobby:

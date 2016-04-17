@@ -74,7 +74,10 @@ public class EventListener implements Listener {
      * Initializes the Events.
      */
     public void init() {
+        // Register this object in the plugin manager.
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+
+        // Rescues players who fall into the void.
         if (fallControl == null) {
             fallControl = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
                 if (plugin.getCfg().getLobbyWorld() != null) {
@@ -225,8 +228,8 @@ public class EventListener implements Listener {
         }
     }
 
-    /*
-     Player related
+    /**
+     * *********** Player related Events ************
      */
     /**
      * Cancel Player Combust if they are not allowed in Lobby World
@@ -458,8 +461,6 @@ public class EventListener implements Listener {
 
         if (e.getPlayer().getWorld().equals(plugin.getCfg().getLobbyWorld())) {
             pm.returnPlayerStuff(e.getPlayer());
-        } else {
-
         }
 
     }

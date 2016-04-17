@@ -261,8 +261,8 @@ public class ConfigurationManager {
         YamlConfiguration spawns = new YamlConfiguration();
         int spawnId = 0;
         for (Location spawn : spawnPoints) {
-            spawns.set(spawnId + ".world", "dummy");
-            setLocation(spawns.getConfigurationSection("" + spawnId), spawn);
+            spawns.set("spawnPoints." + spawnId + ".world", "dummy");
+            setLocation(spawns.getConfigurationSection("spawnPoints." + spawnId), spawn);
             spawnId++;
         }
         spawns.save(mapConfigFile);
