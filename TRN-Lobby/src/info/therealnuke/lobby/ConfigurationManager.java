@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -55,6 +56,10 @@ public class ConfigurationManager {
     private boolean blockIgnite;
     private boolean creatureSpawn;
     private boolean pistonWorks;
+    private boolean enhanceSecurity;
+    private boolean autologin;
+    File passwordDirFile;
+    private List<String> disallowedPass;
 
     public ConfigurationManager(Main plugin) {
         this.plugin = plugin;
@@ -67,7 +72,7 @@ public class ConfigurationManager {
     /**
      * Loads the all configuration files file.
      *
-     * @throws java.io.IOException on 
+     * @throws java.io.IOException on
      * @throws java.io.FileNotFoundException
      * @throws org.bukkit.configuration.InvalidConfigurationException
      */
@@ -96,15 +101,32 @@ public class ConfigurationManager {
         blockIgnite = fc.getBoolean("block-ignite");
         pistonWorks = fc.getBoolean("piston-works");
 
+        enhanceSecurity = fc.getBoolean("enhance-security.active");
+        autologin = fc.getBoolean("enhance-security.autologin");
+        disallowedPass = fc.getStringList("enhance-security.denied-password-words");
+
+        if (enhanceSecurity) {
+            String passwordDir = fc.getString("enhance-security.password-dir");
+            passwordDirFile = new File(plugin.getDataFolder(), passwordDir);
+            passwordDirFile.mkdir();
+        }
+
         mapCfg.load(mapConfigFile);
 
         // Gets all map spawn points.
-        ConfigurationSection csSpawns
+        final ConfigurationSection csSpawns
                 = mapCfg.getConfigurationSection("spawnPoints");
         if (csSpawns != null) {
-            csSpawns.getKeys(false).stream().forEach((position) -> {
-                spawnPoints.add(getLocation(
-                        csSpawns.getConfigurationSection(position)));
+            csSpawns.getKeys(false).stream().forEach(new Consumer<String>() {
+
+                @Override
+                public void accept(String position) {
+                    Location spawnPointLocation = getLocation(
+                            csSpawns.getConfigurationSection(position));
+                    if (spawnPointLocation != null) {
+                        spawnPoints.add(spawnPointLocation);
+                    }
+                }
             });
             lastSpawnGiven = 0;
             if (!spawnPoints.isEmpty()) {
@@ -117,14 +139,17 @@ public class ConfigurationManager {
 
     private void startSaveControl() {
         if (saveControl == null) {
-            saveControl = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-                if (configChanged) {
-                    try {
-                        saveConfiguration();
-                    } catch (IOException ex) {
-                        plugin.alert("Error saving configuration: " + ex.getMessage());
+            saveControl = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, new Runnable() {
+
+                public void run() {
+                    if (configChanged) {
+                        try {
+                            saveConfiguration();
+                        } catch (IOException ex) {
+                            plugin.alert("Error saving configuration: " + ex.getMessage());
+                        }
+                        configChanged = false;
                     }
-                    configChanged = false;
                 }
             }, 1200, 1200);
         }
@@ -223,7 +248,7 @@ public class ConfigurationManager {
         return lobbyWorld;
     }
 
-    private Location getLocation(ConfigurationSection section) {
+    public Location getLocation(ConfigurationSection section) {
         Location result = null;
         int x;
         int y;
@@ -248,7 +273,7 @@ public class ConfigurationManager {
         return result;
     }
 
-    private void setLocation(ConfigurationSection section, Location location) {
+    public static void setLocation(ConfigurationSection section, Location location) {
         section.set("world", location.getWorld().getName());
         section.set("x", location.getBlockX());
         section.set("y", location.getBlockY());
@@ -312,6 +337,22 @@ public class ConfigurationManager {
 
     public boolean isHandleInventory() {
         return handleInventory;
+    }
+
+    public boolean isEnhanceSecurityEnabled() {
+        return enhanceSecurity;
+    }
+
+    public File getPasswordDirFile() {
+        return passwordDirFile;
+    }
+
+    public boolean isAutologinEnabled() {
+        return autologin;
+    }
+
+    public List<String> getDisallowedPassList() {
+        return disallowedPass;
     }
 
 }

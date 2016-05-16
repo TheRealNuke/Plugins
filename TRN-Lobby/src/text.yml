@@ -1,0 +1,81 @@
+# About editing this file:
+# - DO NOT USE TABS. You MUST use spaces or Bukkit will complain. If
+#   you use an editor like Notepad++ (recommended for Windows users), you
+#   must configure it to "replace tabs with spaces." In Notepad++, this can
+#   be changed in Settings > Preferences > Language Menu.
+# - Don't get rid of the indents. They are indented so some entries are
+#   in categories (like "enforce-single-session" is in the "protection"
+#   category.
+# - If you want to check the format of this file before putting it
+#   into the server, paste it into http://yaml-online-parser.appspot.com/
+#   and see if it gives "ERROR:".
+# - Lines starting with # are commentsand so they are ignored.
+#
+
+unregistered-players:
+    welcome: 
+        - "&eWelcome to the server &6%PLAYER%&e. "
+        - "For playing in this server you must to register yourself."
+        - "Just type &o/register&e followed by a password."
+        - "Don't forget your password because you will need it when you come back."
+    notallowed:
+        - "&cYou must &o/register [password]&c first."
+
+registered-players:
+    welcome: 
+        - "&eWelcome back to the server &6%PLAYER%&e."
+        - "Before you can play we need to know this is you."
+        - "Just type &o/login&e followed by your password."
+    autologin:
+        - "&eWelcome back to the server &6%PLAYER%&e."
+        - "&1[&6Autologin&1] &eSame IP and logged user detected!"
+    login:
+        successful:
+            - "&eWelcome back to the server &6%PLAYER%&e."
+            - "&aNow you can play here again."
+        unsuccessful:
+            - "&cIncorrect password."
+            - "The password you have typed is incorrect."
+            - "Please try again."
+    notallowed:
+        - "&cYou must &o/login [password]&c first."
+
+            
+commands:
+    login:
+        missing-password: 
+            - "&cYou have to specify a password!"
+            - "Type &o/login&e followed by your password."
+        not-registered:
+            - "&cYou must &o/register [password]&c first."
+        already-logged:
+            - "&cYou are already logged in."
+        success:
+            - "Great!!! Now you can play."
+    register:
+        missing-password: 
+            - "&cYou have to specify a password!"
+            - "Type &o/register&e followed by a password."
+        few-password-chars:
+            - "&cYour password must have at least 6 characters."
+        disallowed-password:
+            - "&cThis word cannot be used as a password."
+        already-registered:
+            - "&cYou are already registered, &etype &o/changepassword&e for changing your password."
+        success:
+            - "&aGreat!!! Now you are registered."
+            - "Don't forget your password, you will need it for playing again."
+    changepassword:
+        missing-password: 
+            - "&cYou have to specify a password!"
+            - "Type &o/login&e followed by your password."        
+        not-registered:
+            - "&cYou must &o/register [password]&c first."
+        not-logged:
+            - "&cYou must &o/login [password]&c first."
+        success:
+            - "&aYou have changed your password."
+            - "Don't forget your new password, you will need it for playing again."
+    logout:
+        kick-message: "&aSee you soon!"
+        

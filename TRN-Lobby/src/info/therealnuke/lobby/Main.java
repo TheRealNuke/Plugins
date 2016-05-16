@@ -16,10 +16,10 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
-
 package info.therealnuke.lobby;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.md_5.bungee.api.ChatColor;
@@ -32,17 +32,22 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author <a href="mailto:therealnuke@gmail.com">TheRealNuke</a>
  */
-
 public class Main extends JavaPlugin {
-    
+
     private final ConfigurationManager cfg;
     private final CommandManager cmd;
     private final EventListener el;
+    private final TextManager text;
+    private final PlayerManager pm;
+    private final SignManager sm;
 
     public Main() {
         cfg = new ConfigurationManager(this);
         cmd = new CommandManager(this);
+        pm = new PlayerManager(this);
         el = new EventListener(this);
+        text = new TextManager(this);
+        sm = new SignManager(this);
     }
 
     /**
@@ -52,8 +57,10 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         try {
             cfg.load();
+            text.init();
             cmd.init();
             el.init();
+            sm.load();
         } catch (IOException | InvalidConfigurationException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -65,8 +72,12 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         try {
+            if (getCfg().isEnhanceSecurityEnabled()) {
+                pm.kickAllPlayersFromLobby();
+            }
             cfg.finish();
             el.finish();
+            sm.sincronousSave();
         } catch (IOException ex) {
             alert("Unable to save configuration: " + ex.getMessage());
         }
@@ -74,6 +85,7 @@ public class Main extends JavaPlugin {
 
     /**
      * Gets the configuration manager.
+     *
      * @return
      */
     public ConfigurationManager getCfg() {
@@ -110,7 +122,27 @@ public class Main extends JavaPlugin {
      * @param message
      */
     public void sendMessage(CommandSender cs, String message) {
-        cs.sendMessage(cfg.getPrefix() + message);
+        cs.sendMessage(cfg.getPrefix()
+                + ChatColor.translateAlternateColorCodes('&', message));
     }
 
+    public void sendMessages(CommandSender cs, List<String> messages) {
+        for (String message : messages) {
+            sendMessage(cs, message);
+        }
+    }
+
+    public TextManager getText() {
+        return text;
+    }
+
+    public PlayerManager getPm() {
+        return pm;
+    }
+
+    public SignManager getSignManager() {
+        return sm;
+    }
+
+    
 }

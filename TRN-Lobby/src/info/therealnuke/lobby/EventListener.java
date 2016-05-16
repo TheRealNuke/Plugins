@@ -25,6 +25,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -45,6 +46,8 @@ import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -62,12 +65,12 @@ import org.bukkit.scheduler.BukkitTask;
 public class EventListener implements Listener {
 
     private final Main plugin;
-    private final PlayerManager pm;
     private BukkitTask fallControl;
+    private final PlayerManager pm;
 
     public EventListener(Main plugin) {
         this.plugin = plugin;
-        pm = new PlayerManager(plugin);
+        pm = plugin.getPm();
     }
 
     /**
@@ -79,12 +82,16 @@ public class EventListener implements Listener {
 
         // Rescues players who fall into the void.
         if (fallControl == null) {
-            fallControl = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-                if (plugin.getCfg().getLobbyWorld() != null) {
-                    for (Player player : plugin.getCfg()
-                            .getLobbyWorld().getPlayers()) {
-                        if (player.getLocation().getBlockY() < 0) {
-                            player.teleport(plugin.getCfg().getNextSpawnPoint());
+            fallControl = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+
+                @Override
+                public void run() {
+                    if (plugin.getCfg().getLobbyWorld() != null) {
+                        for (Player player : plugin.getCfg()
+                                .getLobbyWorld().getPlayers()) {
+                            if (player.getLocation().getBlockY() < 0) {
+                                player.teleport(plugin.getCfg().getNextSpawnPoint());
+                            }
                         }
                     }
                 }
@@ -290,6 +297,16 @@ public class EventListener implements Listener {
             if (!e.getPlayer().hasPermission("trnlobby.edit")) {
                 e.setCancelled(true);
             }
+            if (e.getAction() == Action.RIGHT_CLICK_BLOCK &&
+                    plugin.getSignManager().isSign(e.getClickedBlock().getLocation())) {
+                if (plugin.getCfg().isEnhanceSecurityEnabled()) {
+                    if (plugin.getPm().isAllowedAction(e.getPlayer())) {
+                        plugin.getSignManager().signTeleport(e);
+                    }
+                } else {
+                    plugin.getSignManager().signTeleport(e);
+                }
+            }
         }
     }
 
@@ -345,6 +362,10 @@ public class EventListener implements Listener {
         if (e.getPlayer().getWorld().equals(plugin.getCfg().getLobbyWorld())) {
             if (!e.getPlayer().hasPermission("trnlobby.edit")) {
                 e.setCancelled(true);
+            } else {
+                if (plugin.getSignManager().isSign(e.getBlock().getLocation())) {
+                    plugin.getSignManager().removeSign(e);
+                }
             }
         }
     }
@@ -435,17 +456,20 @@ public class EventListener implements Listener {
      * @param e The event
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onLoginEvent(PlayerLoginEvent e) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (plugin.getCfg().isSpawnPointsSet()) {
-                pm.savePlayerStuff(e.getPlayer());
-                pm.setPlayerSpawnStuff(e.getPlayer());
-            } else {
-                if (e.getPlayer().hasPermission("trnlobby.admin")) {
-                    plugin.sendMessage(e.getPlayer(),
-                            "No spawnpoint set yet, go to the "
-                            + "lobby world and type: " + ChatColor.ITALIC
-                            + "/trnlobby addspawnpoint");
+    public void onLoginEvent(final PlayerLoginEvent e) {
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+
+            @Override
+            public void run() {
+                if (plugin.getCfg().isSpawnPointsSet()) {
+                    pm.playerConnect(e.getPlayer());
+                } else {
+                    if (e.getPlayer().hasPermission("trnlobby.admin")) {
+                        plugin.sendMessage(e.getPlayer(),
+                                "No spawnpoint set yet, go to the "
+                                + "lobby world and type: " + ChatColor.ITALIC
+                                + "/trnlobby addspawnpoint");
+                    }
                 }
             }
         }, 5);
@@ -465,20 +489,46 @@ public class EventListener implements Listener {
 
     }
 
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onPlayerChat(AsyncPlayerChatEvent e) {
+        if (plugin.getCfg().isSpawnPointsSet()
+                && !pm.isAllowedAction(e.getPlayer())) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onPlayerCommand(PlayerCommandPreprocessEvent e) {
+        String toLowerMessage = e.getMessage().toLowerCase();
+        if (!toLowerMessage.startsWith("/register ")
+                && !toLowerMessage.startsWith("/login ")) {
+            if (plugin.getCfg().isSpawnPointsSet()
+                    && !pm.isAllowedAction(e.getPlayer())) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
     /**
      * If player goes back to the original world teleport to it location.
      *
      * @param e The event
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerTeleport(PlayerTeleportEvent e) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (e.getFrom().getWorld().equals(plugin.getCfg().getLobbyWorld())) {
-                if (e.getTo().getWorld().equals(pm.getWorldFrom(e.getPlayer()))) {
-                    pm.returnPlayerStuff(e.getPlayer());
-                } else if (!e.getTo().getWorld()
-                        .equals(plugin.getCfg().getLobbyWorld())) {
-                    pm.returnPlayerStuff(e.getPlayer(), false);
+    public void onPlayerTeleport(final PlayerTeleportEvent e) {
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+
+            @Override
+            public void run() {
+                if (e.getFrom().getWorld().equals(plugin.getCfg().getLobbyWorld())) {
+                    if (e.getTo().getWorld().equals(pm.getSourceWorld(e.getPlayer()))
+                            && !e.getTo().getWorld()
+                            .equals(plugin.getCfg().getLobbyWorld())) {
+                        pm.returnPlayerStuff(e.getPlayer());
+                    } else if (!e.getTo().getWorld()
+                            .equals(plugin.getCfg().getLobbyWorld())) {
+                        pm.returnPlayerStuff(e.getPlayer(), false);
+                    }
                 }
             }
         }, 5);

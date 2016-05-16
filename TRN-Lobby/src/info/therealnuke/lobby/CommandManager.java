@@ -50,6 +50,10 @@ public class CommandManager implements Listener, CommandExecutor {
      */
     public void init() {
         plugin.getCommand("trnlobby").setExecutor(this);
+        plugin.getCommand("register").setExecutor(this);
+        plugin.getCommand("login").setExecutor(this);
+        plugin.getCommand("logout").setExecutor(this);
+        plugin.getCommand("changepassword").setExecutor(this);
 
         if (plugin.getCfg().overrideSpawnCmd()) {
             if (plugin.getCfg().isSpawnPointsSet()) {
@@ -64,13 +68,16 @@ public class CommandManager implements Listener, CommandExecutor {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onCommand(PlayerCommandPreprocessEvent e) {
+    public void onCommand(final PlayerCommandPreprocessEvent e) {
         if (isSpawnCommand(e.getMessage())) {
             e.setCancelled(true);
             final Location spawnPoint = plugin.getCfg().getNextSpawnPoint();
             // Teleports player to spawn in the next tic.
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                e.getPlayer().teleport(spawnPoint);
+            Bukkit.getScheduler().runTask(plugin, new Runnable() {
+
+                public void run() {
+                    e.getPlayer().teleport(spawnPoint);
+                }
             });
         }
     }
@@ -91,59 +98,172 @@ public class CommandManager implements Listener, CommandExecutor {
         if (cs instanceof Player) {
             player = (Player) cs;
         }
-        if (cmnd.getName().equals("trnlobby")) {
-
-            if (args.length > 0) {
-                // Process each subcommands.
-                switch (args[0]) {
-
-                    case "reload":
-                        try {
-                            plugin.getCfg().reload();
-                            plugin.sendMessage(cs, ChatColor.GREEN
-                                    + "Configuration reloaded.");
-                        } catch (IOException | InvalidConfigurationException ex) {
-                            plugin.alert("Error reloading plugin configuration: "
-                                    + ex.getMessage());
-                        }
-                        break;
-
-                    case "addspawnpoint":
-                        if (player != null) {
-                            World lobbyWorld = plugin.getCfg().getLobbyWorld();
-                            if (lobbyWorld != null
-                                    && !lobbyWorld.equals(player.getWorld())) {
-                                plugin.sendMessage(cs, ChatColor.RED
-                                        + "You cannot add a spawnpoint in "
-                                        + "a different world than the first added.");
-                            } else {
-                                plugin.getCfg().addSpawnPoint(player.getLocation());
-                                int x = player.getLocation().getBlockX();
-                                int y = player.getLocation().getBlockY();
-                                int z = player.getLocation().getBlockZ();
-                                plugin.sendMessage(cs, "Spawnpoint added at "
-                                        + "X=" + x + ", Y=" + y + ", Z=" + z);
+        switch (cmnd.getName()) {
+            case "register":
+                if (player == null) {
+                    sendNPGMsg(cs);
+                } else {
+                    if (args.length > 0) {
+                        if (!plugin.getPm().isRegistered(player)) {
+                            if (validatePassword(args[0], player)) {
+                                plugin.getPm().register(player, args[0]);
+                                plugin.getText().sendRegSuccessMsg(player);
                             }
                         } else {
-                            sendNPGMsg(cs);
+                            plugin.getText().sendAlreadyRegMsg(player);
                         }
-                        break;
-
-                    default:
-                        plugin.sendMessage(cs, ChatColor.RED
-                                + "Invalid subcommand.");
-                        showHelp = true;
-                        break;
-
+                    } else {
+                        plugin.getText().sendRegMissingPasswordMsg(player);
+                    }
                 }
+                break;
+            case "login":
+                if (player == null) {
+                    sendNPGMsg(cs);
+                } else {
+                    if (args.length > 0) {
+                        if (!plugin.getPm().isRegistered(player)) {
+                            plugin.getText().sendLogNotRegMsg(player);
+                        } else if (plugin.getPm().isLogged(player)) {
+                            plugin.getText().sendLogAlreadyMsg(player);
+                        } else {
+                            plugin.getPm().login(player, args[0]);
+                        }
+                    } else {
+                        plugin.getText().sendLogNoPassMsg(player);
+                    }
+                }
+                break;
+            case "changepassword":
+                if (player == null) {
+                    sendNPGMsg(cs);
+                } else {
+                    if (args.length > 0) {
+                        if (!plugin.getPm().isRegistered(player)) {
+                            plugin.getText().sendCPNotRegMsg(player);
+                        } else {
+                            if (!plugin.getPm().isLogged(player)) {
+                                plugin.getText().sendCPNotLogMsg(player);
+                            } else {
+                                if (validatePassword(args[0], player)) {
+                                    plugin.getPm().register(player, args[0]);
+                                    plugin.getText().sendCPSuccessMsg(player);
+                                }
+                            }
+                        }
+                    } else {
+                        plugin.getText().sendCPMissingPasswordMsg(player);
+                    }
+                }
+                break;
+            case "logout":
+                if (player == null) {
+                    sendNPGMsg(cs);
+                } else {
+                    plugin.getPm().removePlayer(player);
+                    player.kickPlayer(plugin.getText().getLogOutMsg());
+                }
+                break;
+            case "trnlobby":
+                if (args.length > 0) {
+                    // Process each subcommands.
+                    switch (args[0]) {
 
-            } else {
-                plugin.sendMessage(cs, ChatColor.RED
-                        + "Missing subcommand.");
-                showHelp = true;
-            }
-        } else {
-            throw new UnsupportedOperationException("Not supported yet.");
+                        case "reload":
+                            try {
+                                plugin.getCfg().reload();
+                                plugin.sendMessage(cs, ChatColor.GREEN
+                                        + "Configuration reloaded.");
+                            } catch (IOException | InvalidConfigurationException ex) {
+                                plugin.alert("Error reloading plugin configuration: "
+                                        + ex.getMessage());
+                            }
+                            break;
+
+                        case "addspawnpoint":
+                            if (player != null) {
+                                World lobbyWorld = plugin.getCfg().getLobbyWorld();
+                                if (lobbyWorld != null
+                                        && !lobbyWorld.equals(player.getWorld())) {
+                                    plugin.sendMessage(cs, ChatColor.RED
+                                            + "You cannot add a spawnpoint in "
+                                            + "a different world than the first added.");
+                                } else {
+                                    boolean kickAll = !plugin.getCfg().isSpawnPointsSet();
+                                    plugin.getCfg().addSpawnPoint(player.getLocation());
+                                    int x = player.getLocation().getBlockX();
+                                    int y = player.getLocation().getBlockY();
+                                    int z = player.getLocation().getBlockZ();
+                                    plugin.sendMessage(cs, "Spawnpoint added at "
+                                            + "X=" + x + ", Y=" + y + ", Z=" + z);
+                                    if (kickAll && plugin.getCfg().isEnhanceSecurityEnabled()) {
+                                        plugin.getPm().kickAllPlayers();
+                                    }
+                                }
+                            } else {
+                                sendNPGMsg(cs);
+                            }
+                            break;
+                        case "sign":
+                            if (player != null) {
+                                World lobbyWorld = plugin.getCfg().getLobbyWorld();
+                                if (lobbyWorld != null
+                                        && !lobbyWorld.equals(player.getWorld())) {
+                                    plugin.sendMessage(cs, ChatColor.RED
+                                            + "You cannot manage a sign in "
+                                            + "a different world than the lobby's world.");
+                                } else {
+                                    if (args.length != 2 || (!args[1].equalsIgnoreCase("add")
+                                            && !args[1].equalsIgnoreCase("set-dest"))) {
+                                        plugin.sendMessage(cs, ChatColor.RED
+                                                + "You must to specify the action: "
+                                                + "\"add\" or \"set-dest\" for \"sign\" command.");
+                                    } else {
+                                        switch (args[1].toLowerCase()) {
+                                            case "add":
+                                                plugin.getSignManager()
+                                                        .addEditor(player);
+                                                break;
+                                            case "set-dest":
+                                                if (plugin.getSignManager().isEditor(player)) {
+                                                    if (plugin.getSignManager().canSetDestination(player)) {
+                                                        plugin.getSignManager()
+                                                                .setDestination(player);
+                                                    } else {
+                                                        plugin.sendMessage(cs, ChatColor.RED
+                                                                + "You must to place a sign first.");
+                                                    }
+                                                } else {
+                                                    plugin.sendMessage(cs, ChatColor.RED
+                                                            + "You must to type : " + ChatColor.ITALIC
+                                                            + "/trnlobby sign add " + ChatColor.RED
+                                                            + "and place a sign first.");
+                                                }
+                                                break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                sendNPGMsg(cs);
+                            }
+                            break;
+                        default:
+                            plugin.sendMessage(cs, ChatColor.RED
+                                    + "Invalid subcommand.");
+                            showHelp = true;
+                            break;
+
+                    }
+
+                } else {
+                    plugin.sendMessage(cs, ChatColor.RED
+                            + "Missing subcommand.");
+                    showHelp = true;
+                }
+                break;
+
+            default:
+                throw new UnsupportedOperationException("Not supported yet.");
         }
         return !showHelp;
     }
@@ -157,5 +277,18 @@ public class CommandManager implements Listener, CommandExecutor {
     private void sendNPGMsg(CommandSender cs) {
         plugin.sendMessage(cs, ChatColor.RED
                 + "This command must be run by a player ingame.");
+    }
+
+    private boolean validatePassword(String pass, Player player) {
+        boolean ret = false;
+        if (pass.length() < 6) {
+            plugin.getText().sendRegFewCharsMsg(player);
+        } else if (plugin.getCfg().getDisallowedPassList()
+                .contains(pass.toLowerCase())) {
+            plugin.getText().sendRegdisallowPwMsg(player);
+        } else {
+            ret = true;
+        }
+        return ret;
     }
 }

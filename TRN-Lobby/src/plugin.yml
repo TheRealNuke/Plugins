@@ -1,5 +1,5 @@
 name: TRN-Lobby
-version: "1.0.1 Release"
+version: "1.1.0 Beta"
 main: info.therealnuke.lobby.Main
 description: The Real Nuke Lobby
 author: TheRealNuke <therealnuke@gmail.com>
@@ -8,8 +8,28 @@ website: http://therealnuke.info/
 commands:
     trnlobby:
         description: Manage the TRN-Lobby plugin options.
-        usage: "§eUsage: /trnlobby <reload|addspawnpoint>"
+        usage: "§eUsage: /trnlobby <reload|addspawnpoint|sign [add|set-dest]>"
         permission: trnlobby.admin
+        permission-message: §4You don't have <permission>
+    register:
+        description: Register into the server
+        usage: "§eUsage: /register [password] <password>"
+        permission: trnlobby.register
+        permission-message: §4You don't have <permission>        
+    changepassword:
+        description: Change the user password
+        usage: "§eUsage: /changepassword [password] <password>"
+        permission: trnlobby.logout
+        permission-message: §4You don't have <permission>
+    login:
+        description: Login into the server
+        usage: "§eUsage: /login [password]"
+        permission: trnlobby.login
+        permission-message: §4You don't have <permission>
+    logout:
+        description: Logout from the server
+        usage: "§eUsage: /logout"
+        permission: trnlobby.logout
         permission-message: §4You don't have <permission>
 
 permissions:

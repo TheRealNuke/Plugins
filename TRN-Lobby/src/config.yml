@@ -29,3 +29,15 @@ allow:
 
 # Handle the inventory between Lobby World and other worlds.
 handle-inventory: true
+
+# Request players login/register with password.
+enhance-security:
+    active: true
+    password-dir: users
+    # Autologin players which return from the same IP address.
+    autologin: true
+    denied-password-words:
+        - '123546'
+        - 'abcdef'
+        - 'password'
+        - 'minecraft' 
