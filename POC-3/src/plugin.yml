@@ -1,0 +1,6 @@
+name: TRN-POC-3
+version: "1.0.0"
+main: info.therealnuke.trnpoc.Main
+description: Probe of concepts 3
+author: TheRealNuke <therealnuke@gmail.com>
+load: POSTWORLD
